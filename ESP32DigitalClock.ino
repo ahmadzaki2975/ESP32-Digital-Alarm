@@ -47,25 +47,45 @@ void displayTime(struct tm* timeinfo) {
   display.print(buffer);
   display.setCursor(0, 20);
   display.print(dateBuffer);
+  display.setCursor(0, 30);
+  display.print("Alarm on ");
+  if (alarmHour < 10) {
+    display.print("0");
+  }
+  display.print(alarmHour);
+  display.print(":");
+  if (alarmMinute < 10) {
+    display.print("0");
+  }
+  display.print(alarmMinute);
   display.setCursor(0, 40);
   display.print("===========");
   display.display();
 
   // Send to server
-  String data = "{\"time\":\"" + String(buffer) + "\",\"date\":\"" + String(dateBuffer) + "\"}";
+  String data = "{\"time\":\"" + String(buffer) + "\",\"date\":\"" + String(dateBuffer) + "\",\"alarm\":{\"hour\":\"";
+  if (alarmHour < 10) {
+    data += "0";
+  }
+  data += String(alarmHour) + "\",\"minute\":\"";
+  if (alarmMinute < 10) {
+    data += "0";
+  }
+  data += String(alarmMinute) + "\"}}";
 
   Serial.println(data);
   char pressedKey = NULL;
 
   http.begin(client, serverPath + "/data");
   http.addHeader("Content-Type", "application/json");
-  // int httpResponseCode = http.POST(data);
+  int httpResponseCode = http.POST(data);
+  Serial.println(httpResponseCode);
   http.end();
 }
 
 void IRAM_ATTR hourInterruptHandler() {
-  static unsigned long lastDebounceTime = 0;  
-  unsigned long debounceDelay = 200;          
+  static unsigned long lastDebounceTime = 0;
+  unsigned long debounceDelay = 200;
   unsigned long currentTime = millis();
 
   if (currentTime - lastDebounceTime > debounceDelay) {
@@ -76,13 +96,13 @@ void IRAM_ATTR hourInterruptHandler() {
       alarmHour++;
     }
     Serial.println("Alarm hour : " + String(alarmHour));
-    lastDebounceTime = currentTime; 
+    lastDebounceTime = currentTime;
   }
 }
 
 void IRAM_ATTR minuteInterruptHandler() {
-  static unsigned long lastDebounceTime = 0;  
-  unsigned long debounceDelay = 200;          
+  static unsigned long lastDebounceTime = 0;
+  unsigned long debounceDelay = 200;
   unsigned long currentTime = millis();
 
   if (currentTime - lastDebounceTime > debounceDelay) {
@@ -138,16 +158,16 @@ void loop() {
     lastUpdate = currentMillis;
     displayTime(timeinfo);
 
-    if (hourInterruptFlag || minuteInterruptFlag) {
-      minuteInterruptFlag = false;
-      hourInterruptFlag = false;
-      
-      String data = "{\"alarm\": {\"hour\": " + String(alarmHour) + ", \"minute\": " + String(alarmMinute) + "}}";
-      http.begin(client, serverPath + "/alarm");
-      http.addHeader("Content-Type", "application/json");
-      int httpResponseCode = http.POST(data);
+    // if (hourInterruptFlag || minuteInterruptFlag) {
+    //   minuteInterruptFlag = false;
+    //   hourInterruptFlag = false;
 
-      http.end();
-    }
+    //   String data = "{\"alarm\": {\"hour\": " + String(alarmHour) + ", \"minute\": " + String(alarmMinute) + "}}";
+    //   http.begin(client, serverPath + "/alarm");
+    //   http.addHeader("Content-Type", "application/json");
+    //   int httpResponseCode = http.POST(data);
+
+    //   http.end();
+    // }
   }
 }
